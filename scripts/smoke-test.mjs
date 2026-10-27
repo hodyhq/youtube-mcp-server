@@ -38,7 +38,7 @@ function runSmoke(entry) {
     writeFileSync(join(workDir, '.env'), 'SMOKE_TEST_DOTENV=1\n');
     const serverPath = fileURLToPath(new URL(`../${entry}`, import.meta.url));
 
-    const proc = spawn('node', [serverPath], {
+    const proc = spawn(process.execPath, [serverPath], {
       cwd: workDir,
       env: { ...env, MCP_TRANSPORT: 'stdio' },
       stdio: ['pipe', 'pipe', 'pipe'],
@@ -46,8 +46,24 @@ function runSmoke(entry) {
 
     let stdout = '';
     let stderr = '';
-    proc.stdout.on('data', (d) => { stdout += d; });
+    let settled = false;
+    const finish = (result) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(killTimer);
+      resolve(result);
+    };
+
+    proc.stdout.on('data', (d) => {
+      stdout += d;
+      // Stop as soon as the last response is in, instead of waiting out the timeout.
+      if (stdout.includes('"id":3')) proc.kill();
+    });
     proc.stderr.on('data', (d) => { stderr += d; });
+    proc.on('error', (err) => {
+      rmSync(workDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+      finish({ failures: [`Could not start ${entry}: ${err.message}`], stderr, summary: '' });
+    });
     // A server that exits early closes stdin; ignore the write error and report via the checks below.
     proc.stdin.on('error', () => {});
 
@@ -71,7 +87,7 @@ function runSmoke(entry) {
       });
     }, 1500);
 
-    setTimeout(() => proc.kill(), TIMEOUT_MS);
+    const killTimer = setTimeout(() => proc.kill(), TIMEOUT_MS);
 
     // Check once stdout and stderr have closed, so no final output is missed. On Windows
     // the temp dir also stays locked until the server has exited.
@@ -110,7 +126,7 @@ function runSmoke(entry) {
       const summary = initResponse?.result?.serverInfo
         ? `initialize ok (${initResponse.result.serverInfo.name} v${initResponse.result.serverInfo.version}), ${toolCount} tools listed, keyless call rejected, stdout clean.`
         : '';
-      resolve({ failures, stderr, summary });
+      finish({ failures, stderr, summary });
     });
   });
 }

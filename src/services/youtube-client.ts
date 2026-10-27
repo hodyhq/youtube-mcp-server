@@ -105,12 +105,13 @@ class YouTubeClientPool {
 
 const pool = new YouTubeClientPool();
 
+// Same test as the pool initializer, so a blank key gets the startup warning too.
 export function hasConfiguredYouTubeApiKey(): boolean {
-  return Boolean(
-    process.env.YOUTUBE_API_KEY ||
-    process.env.YOUTUBE_API_KEY2 ||
-    process.env.YOUTUBE_API_KEY3
-  );
+  return [
+    process.env.YOUTUBE_API_KEY,
+    process.env.YOUTUBE_API_KEY2,
+    process.env.YOUTUBE_API_KEY3,
+  ].some((value) => Boolean(value && value.trim()));
 }
 
 export async function withYouTubeClient<T>(request: (youtube: YouTubeClient) => Promise<T>): Promise<T> {
