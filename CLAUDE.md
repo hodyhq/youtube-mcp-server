@@ -31,7 +31,7 @@ npm run prepublishOnly
 
 The project uses a **service-based architecture** with the following layers:
 
-1. **Entry Point** (`src/index.ts`): Validates required environment variables and starts the MCP server
+1. **Entry Point** (`src/index.ts`): Warns if no YouTube API key is set (keys are validated lazily on the first tool call) and starts the MCP server
 2. **Server** (`src/server.ts`): Sets up the MCP server, defines available tools, and routes tool calls to appropriate services
 3. **Services** (`src/services/`): Core business logic for interacting with YouTube APIs
    - `VideoService`: Handles video operations (get video details, search videos)
@@ -68,7 +68,7 @@ The project uses **ES modules** (ESNext) as configured in:
 
 | File | Purpose |
 |------|---------|
-| `src/index.ts` | Entry point, validates YOUTUBE_API_KEY |
+| `src/index.ts` | Entry point, warns if YOUTUBE_API_KEY is missing |
 | `src/server.ts` | MCP server setup and tool routing |
 | `src/services/video.ts` | Video lookup and search functionality |
 | `src/services/transcript.ts` | Video transcript retrieval |

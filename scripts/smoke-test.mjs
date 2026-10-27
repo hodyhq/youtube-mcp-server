@@ -15,8 +15,15 @@ import { spawn } from 'node:child_process';
 
 const TIMEOUT_MS = 10_000;
 
+// Run with every API key removed: the server must still start, because keys are
+// validated lazily on the first tool call (issue #31). Case-insensitive, since
+// Windows environment variable names are.
+const env = Object.fromEntries(
+  Object.entries(process.env).filter(([name]) => !/^YOUTUBE_API_KEY\d?$/i.test(name))
+);
+
 const proc = spawn('node', ['dist/index.js'], {
-  env: { ...process.env, YOUTUBE_API_KEY: 'smoke-test-key', MCP_TRANSPORT: 'stdio' },
+  env: { ...env, MCP_TRANSPORT: 'stdio' },
   stdio: ['pipe', 'pipe', 'pipe'],
 });
 
