@@ -12,6 +12,10 @@
  * No YouTube API key is required; the server validates keys lazily.
  */
 import { spawn } from 'node:child_process';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const TIMEOUT_MS = 10_000;
 
@@ -22,7 +26,14 @@ const env = Object.fromEntries(
   Object.entries(process.env).filter(([name]) => !/^YOUTUBE_API_KEY\d?$/i.test(name))
 );
 
-const proc = spawn('node', ['dist/index.js'], {
+// Run from an empty temp dir holding a harmless .env, so no local .env can restore an
+// API key, and so the test fails if dotenv prints to stdout when it loads a file.
+const workDir = mkdtempSync(join(tmpdir(), 'yt-mcp-smoke-'));
+writeFileSync(join(workDir, '.env'), 'SMOKE_TEST_DOTENV=1\n');
+const serverPath = fileURLToPath(new URL('../dist/index.js', import.meta.url));
+
+const proc = spawn('node', [serverPath], {
+  cwd: workDir,
   env: { ...env, MCP_TRANSPORT: 'stdio' },
   stdio: ['pipe', 'pipe', 'pipe'],
 });
@@ -50,8 +61,14 @@ setTimeout(() => {
   send({ jsonrpc: '2.0', id: 2, method: 'tools/list' });
 }, 1500);
 
-setTimeout(() => {
-  proc.kill();
+// A server that exits early closes stdin; ignore the write error and report via the checks below.
+proc.stdin.on('error', () => {});
+
+setTimeout(() => proc.kill(), TIMEOUT_MS);
+
+// Check once the server has exited: on Windows its temp dir stays locked until then.
+proc.on('exit', () => {
+  rmSync(workDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
 
   const failures = [];
   const lines = stdout.trim().split('\n').filter(Boolean);
@@ -85,4 +102,4 @@ setTimeout(() => {
 
   console.log(`SMOKE TEST PASSED: initialize ok (${initResponse.result.serverInfo.name} v${initResponse.result.serverInfo.version}), ${toolCount} tools listed, stdout clean.`);
   process.exit(0);
-}, TIMEOUT_MS);
+});
