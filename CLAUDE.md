@@ -31,7 +31,7 @@ npm run prepublishOnly
 
 The project uses a **service-based architecture** with the following layers:
 
-1. **Entry Point** (`src/index.ts`): Validates required environment variables and starts the MCP server
+1. **Entry Point** (`src/index.ts`): Warns if no YouTube API key is set (keys are validated lazily on the first tool call) and starts the MCP server
 2. **Server** (`src/server.ts`): Sets up the MCP server, defines available tools, and routes tool calls to appropriate services
 3. **Services** (`src/services/`): Core business logic for interacting with YouTube APIs
    - `VideoService`: Handles video operations (get video details, search videos)
@@ -68,7 +68,7 @@ The project uses **ES modules** (ESNext) as configured in:
 
 | File | Purpose |
 |------|---------|
-| `src/index.ts` | Entry point, validates YOUTUBE_API_KEY |
+| `src/index.ts` | Entry point, warns if YOUTUBE_API_KEY is missing |
 | `src/server.ts` | MCP server setup and tool routing |
 | `src/services/video.ts` | Video lookup and search functionality |
 | `src/services/transcript.ts` | Video transcript retrieval |
@@ -78,8 +78,8 @@ The project uses **ES modules** (ESNext) as configured in:
 
 ## Configuration
 
-**Required Environment Variable:**
-- `YOUTUBE_API_KEY`: Your YouTube Data API v3 key (must be set before starting the server)
+**Required Environment Variable (for YouTube Data API tools):**
+- `YOUTUBE_API_KEY`: Your YouTube Data API v3 key. The server starts without it, but tools that call the Data API return an error until it is set. `YOUTUBE_API_KEY2` and `YOUTUBE_API_KEY3` are optional fallbacks used when a key runs out of quota.
 
 **Optional Environment Variable:**
 - `YOUTUBE_TRANSCRIPT_LANG`: Default language for transcripts (defaults to 'en')
@@ -108,7 +108,8 @@ The project is published as an npm package (`zubeid-youtube-mcp-server`) and can
 The project was recently migrated to ES modules to fix compatibility issues with LibreChat and improve module resolution. When making changes:
 - Ensure all imports use `.js` extensions for relative imports
 - Verify TypeScript compiles without errors: `npm run build`
-- Test the server can start: `npm start` (requires valid YOUTUBE_API_KEY)
+- Run the STDIO smoke test: `npm test` (no API key needed; it runs keyless on purpose)
+- Exercise real API calls with `npm start` and a valid `YOUTUBE_API_KEY`
 
 ## Important Notes
 

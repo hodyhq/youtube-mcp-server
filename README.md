@@ -151,7 +151,7 @@ Set the following environment variables:
 * `YOUTUBE_API_KEY3`: Third fallback API key
 * `YOUTUBE_TRANSCRIPT_LANG`: Default language for transcripts (optional, defaults to 'en')
 
-At least one of `YOUTUBE_API_KEY`, `YOUTUBE_API_KEY2`, or `YOUTUBE_API_KEY3` must be set. When a request fails because a key has exhausted its quota, the server retries the same request with the next configured key.
+Set at least one of `YOUTUBE_API_KEY`, `YOUTUBE_API_KEY2`, or `YOUTUBE_API_KEY3` to use the YouTube Data API tools. The server starts without a key and transcripts work without one; Data API tools return an error until a key is set. When a request fails because a key has exhausted its quota, the server retries the same request with the next configured key.
 
 ### Using with VS Code
 
@@ -222,7 +222,7 @@ npm install
 # Build
 npm run build
 
-# Start the server (requires at least one configured YouTube API key)
+# Start the server (Data API tools need at least one configured YouTube API key)
 npm start
 
 # Development mode with auto-rebuild
